@@ -9,6 +9,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.dows.rfa.api.ResumeFileApi;
+import org.dows.rfa.open.PostResumeFileEntityRequest;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.stereotype.Service;
 
@@ -172,15 +174,15 @@ public class MailReceiver implements MailReceivable {
         try {
             final MimeMessage messageToExtract = (MimeMessage) message;
             // todo 构建请求
-            //PostResumeFileEntityRequest request = new PostResumeFileEntityRequest();
-
+            PostResumeFileEntityRequest request = new PostResumeFileEntityRequest();
+            // 解析邮件基本信息
             parseMailBasicInfo(message);
             parseMailContent(message);
             showMailContent(messageToExtract);
 
             downloadAttachmentFiles(messageToExtract);
             // todo 保存请求
-            //resumeFileApi.postEntity(request);
+            resumeFileApi.postEntity(request);
 
             // To delete downloaded email
             //messageToExtract.setFlag(Flags.Flag.DELETED, true);

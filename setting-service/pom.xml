@@ -15,6 +15,11 @@
             <artifactId>setting-repository</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>org.dows.cloud</groupId>
+            <artifactId>rfa-api</artifactId>
+        </dependency>
+
     </dependencies>
 
 </project>
