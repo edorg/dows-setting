@@ -1,0 +1,28 @@
+rade:
+  jackson:
+    timestamp: true
+    big-number-to-string: true
+  cacheName: hrm
+  encryptor:
+    enable: true
+    algorithm: AES
+
+  api:
+    mock:
+      enabled: true
+      packages:
+        - org.dows.project.admin
+
+
+#springdoc:
+#  cache:
+#    disabled: true
+#  api-docs:
+#    enabled: true
+#    path: /api-docs
+#  swagger-ui:
+#    path: /swagger-ui.html
+#  group-configs:
+#    - group: 'rest'
+#      paths-to-match: '/**'
+#      packages-to-scan: org.dows.oss.rest

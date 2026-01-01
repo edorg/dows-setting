@@ -82,7 +82,7 @@ public class MailReceiver implements MailReceivable{
             downloadAttachmentFiles(messageToExtract);
 
             // To delete downloaded email
-            messageToExtract.setFlag(Flags.Flag.DELETED, true);
+            //messageToExtract.setFlag(Flags.Flag.DELETED, true);
 
         } catch (Exception e) {
             log.error(e.getMessage(), e);

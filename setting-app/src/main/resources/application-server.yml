@@ -1,0 +1,56 @@
+server:
+  undertow:
+    buffer-size: 1024
+    direct-buffers: true
+    threads:
+      io: 4
+      worker: 32
+  #  servlet:
+  #    context-path: /${spring.application.name}
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/plain
+
+
+---
+#开发环境
+spring:
+  config:
+    activate:
+      on-profile: dev
+server:
+  port: 18001
+
+rade:
+  cacheName: hrm
+  encryptor:
+    enable: true
+    algorithm: AES
+    secretKey: 3fb2uPksjNOnxZI3
+
+---
+#测试环境
+spring:
+  config:
+    activate:
+      on-profile: sit
+server:
+  port: 28002
+
+---
+#测试环境
+spring:
+  config:
+    activate:
+      on-profile: uat
+server:
+  port: 38001
+
+---
+#测试环境
+spring:
+  config:
+    activate:
+      on-profile: prd
+server:
+  port: 48001
