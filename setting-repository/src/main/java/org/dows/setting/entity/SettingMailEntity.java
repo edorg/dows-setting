@@ -31,7 +31,7 @@ public class SettingMailEntity extends CrudEntity<SettingMailEntity> {
     @Schema(title = "服务器地址")
     private String mailHost;
     @Schema(title = "服务器端口")
-    private String mailPort;
+    private Integer mailPort;
     @Schema(title = "邮箱类型（0:个人，1:企业）")
     private Integer emailType;
     @Schema(title = "轮询间隔（毫秒）")

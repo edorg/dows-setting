@@ -183,13 +183,13 @@ public class MailReceiverConfiguration implements ApplicationRunner {
      */
     private String buildStoreUrl(MailProperties config) {
         // 处理特殊字符，如@需要编码为%40
-        String encodedUsername = config.getUsername().replace("@", "%40");
-        String encodedPassword = config.getPassword().replace("@", "%40");
+        String encodedUsername = config.getEmailAddress().replace("@", "%40");
+        String encodedPassword = config.getAuthCode().replace("@", "%40");
 
         String protocol = config.getSslEnabled() ? config.getProtocol() + "s" : config.getProtocol();
         return String.format("%s://%s:%s@%s:%d/%s",
                 protocol, encodedUsername, encodedPassword,
-                config.getHost(), config.getPort(), config.getFolder());
+                config.getMailHost(), config.getMailPort(), config.getFolder());
     }
 
     /**
@@ -211,7 +211,7 @@ public class MailReceiverConfiguration implements ApplicationRunner {
         if (config.getSslEnabled()) {
             properties.put(String.format("mail.%s.socketFactory.class", protocol), "jakarta.mail.ssl.SSLSocketFactory");
             properties.put(String.format("mail.%s.socketFactory.fallback", protocol), "false");
-            properties.put(String.format("mail.%s.socketFactory.port", protocol), config.getPort().toString());
+            properties.put(String.format("mail.%s.socketFactory.port", protocol), config.getMailPort().toString());
         }
 
         return properties;
