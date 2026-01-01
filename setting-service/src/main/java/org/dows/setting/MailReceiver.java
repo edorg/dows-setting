@@ -23,12 +23,14 @@ import java.util.Arrays;
 @Slf4j
 @RequiredArgsConstructor
 @Service
-public class MailReceiver implements MailReceivable{
+public class MailReceiver implements MailReceivable {
 
     private static final String DOWNLOAD_FOLDER = "data";
 
     private static final String DOWNLOADED_MAIL_FOLDER = "DOWNLOADED";
     private static final String ATTACHMENT_SAVE_PATH = "D:/tencent_exmail_attachments/";
+    private final ResumeFileApi resumeFileApi;
+
     public void receive(MimeMessage receivedMessage) {
         try {
 
@@ -55,7 +57,6 @@ public class MailReceiver implements MailReceivable{
             log.error(e.getMessage(), e);
         }
     }
-
 
 
     /**
@@ -148,7 +149,6 @@ public class MailReceiver implements MailReceivable{
     }
 
 
-
     private void fetchMessagesInFolder(Folder folder, Message[] messages) throws MessagingException {
         FetchProfile contentsProfile = new FetchProfile();
         contentsProfile.add(FetchProfile.Item.ENVELOPE);
@@ -171,11 +171,16 @@ public class MailReceiver implements MailReceivable{
     private void extractMail(Message message) {
         try {
             final MimeMessage messageToExtract = (MimeMessage) message;
+            // todo 构建请求
+            //PostResumeFileEntityRequest request = new PostResumeFileEntityRequest();
+
             parseMailBasicInfo(message);
             parseMailContent(message);
             showMailContent(messageToExtract);
 
             downloadAttachmentFiles(messageToExtract);
+            // todo 保存请求
+            //resumeFileApi.postEntity(request);
 
             // To delete downloaded email
             //messageToExtract.setFlag(Flags.Flag.DELETED, true);
