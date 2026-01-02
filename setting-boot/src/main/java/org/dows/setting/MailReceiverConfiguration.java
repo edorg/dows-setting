@@ -1,6 +1,8 @@
 package org.dows.setting;
 
 import cn.hutool.core.bean.BeanUtil;
+import io.vertx.core.Vertx;
+import jakarta.annotation.PostConstruct;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -10,8 +12,6 @@ import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.Ordered;
-import org.springframework.core.annotation.Order;
 import org.springframework.integration.annotation.ServiceActivator;
 import org.springframework.integration.channel.DirectChannel;
 import org.springframework.integration.config.EnableIntegration;
@@ -42,6 +42,12 @@ public class MailReceiverConfiguration implements ApplicationRunner {
     private final Map<String, MailReceivingMessageSource> messageSources = new HashMap<>();
     private final Map<String, DirectChannel> channels = new HashMap<>();
     private final Map<String, MailReceiver> receivers = new HashMap<>();
+
+    /**
+     * 创建并配置Vertx实例
+     *
+     * @return Vertx实例
+     */
 
     /**
      * 处理接收到的邮件消息

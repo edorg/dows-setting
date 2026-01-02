@@ -11,7 +11,7 @@ public class VertxDomainEventBus implements DomainEventBus {
     private final Vertx vertx;
     @Override
     public void publish(DomainEvent event) {
-        String address = EventAddressMapper.map(event);
-        vertx.eventBus().publish(address, event);
+        //String address = EventAddressMapper.map(event);
+        vertx.eventBus().publish(event.address(), event);
     }
 }

@@ -4,10 +4,13 @@ public final class EventAddressMapper {
     private EventAddressMapper() {
     }
 
+    // todo 动态维护在数据库中
     public static String map(DomainEvent event) {
-        if (event instanceof AttachmentDownloadedEvent) {
-            return "order.created.v1";
+        String address = event.address();
+        if (address != null) {
+            return address;
         }
-        throw new IllegalArgumentException("Unknown event: " + event.getClass());
+        throw new IllegalArgumentException("No address found for event: " + event.getClass().getName());
     }
+
 }
