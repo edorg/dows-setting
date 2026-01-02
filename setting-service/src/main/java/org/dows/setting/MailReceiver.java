@@ -243,12 +243,22 @@ public class MailReceiver implements MailReceivable {
                     if (StringUtils.isNotBlank(fileName)) {
                         // 使用MimeUtility解码文件名，处理中文文件名
                         fileName = MimeUtility.decodeText(fileName);
+
+                        // 清理文件名中的非法字符
+                        fileName = sanitizeFileName(fileName);
+
                         String rootDirectoryPath = new FileSystemResource("").getFile().getAbsolutePath();
                         String dataFolderPath = rootDirectoryPath + File.separator + DOWNLOAD_FOLDER;
                         createDirectoryIfNotExists(dataFolderPath);
 
                         String downloadedAttachmentFilePath = rootDirectoryPath + File.separator + DOWNLOAD_FOLDER + File.separator + fileName;
+
+                        // 确保目标文件的父目录存在
                         File downloadedAttachmentFile = new File(downloadedAttachmentFilePath);
+                        File parentDir = downloadedAttachmentFile.getParentFile();
+                        if (parentDir != null && !parentDir.exists()) {
+                            parentDir.mkdirs();
+                        }
 
                         log.info("Save attachment file to: {}", downloadedAttachmentFilePath);
 
@@ -256,7 +266,7 @@ public class MailReceiver implements MailReceivable {
                              OutputStream out = new FileOutputStream(downloadedAttachmentFile)) {
                             IOUtils.copy(in, out);
                         } catch (IOException e) {
-                            log.error("Failed to save file.", e);
+                            log.error("Failed to save file: {}", downloadedAttachmentFilePath, e);
                         }
                     }
                 }
@@ -275,5 +285,23 @@ public class MailReceiver implements MailReceivable {
                 log.error("An error occurred during create folder: {}", directoryPath, e);
             }
         }
+    }
+
+    /**
+     * 清理文件名中的非法字符
+     * Windows系统中不允许的字符: < > : " | ? * \
+     * Linux/Unix系统中不允许的字符: /
+     */
+    private String sanitizeFileName(String fileName) {
+        if (StringUtils.isBlank(fileName)) {
+            return fileName;
+        }
+
+        // 替换Windows和Unix系统中不允许的字符
+        return fileName
+                .replaceAll("[<>:\"|?*\\\\]", "_") // Windows非法字符替换为下划线
+                .replaceAll("/", "_")              // Unix/Linux非法字符替换为下划线
+                .replaceAll("[\\x00-\\x1f]", "")   // 移除控制字符
+                .trim();
     }
 }

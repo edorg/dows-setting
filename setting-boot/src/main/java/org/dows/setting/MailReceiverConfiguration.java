@@ -206,7 +206,7 @@ public class MailReceiverConfiguration implements ApplicationRunner {
         String sslProtocol = config.getSslEnabled() ? protocol + "s" : protocol;
 
         properties.put("mail.store.protocol", sslProtocol);
-        properties.put("mail.debug", "true");
+        properties.put("mail.debug", "false");
 
         // SSL配置
         if (config.getSslEnabled()) {
