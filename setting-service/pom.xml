@@ -15,11 +15,6 @@
             <artifactId>setting-repository</artifactId>
         </dependency>
 
-        <!--<dependency>
-            <groupId>org.dows.cloud</groupId>
-            <artifactId>rfa-api</artifactId>
-        </dependency>-->
-        
         <dependency>
             <groupId>io.vertx</groupId>
             <artifactId>vertx-core</artifactId>
