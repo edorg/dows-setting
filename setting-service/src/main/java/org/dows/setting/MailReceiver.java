@@ -1,5 +1,6 @@
 package org.dows.setting;
 
+import io.vertx.core.Vertx;
 import jakarta.mail.*;
 import jakarta.mail.internet.MimeBodyPart;
 import jakarta.mail.internet.MimeMessage;
@@ -9,8 +10,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.dows.rfa.api.ResumeFileApi;
-import org.dows.rfa.open.PostResumeFileEntityRequest;
+import org.dows.setting.config.DomainEvent;
+import org.dows.setting.config.DomainEventBus;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.stereotype.Service;
 
@@ -18,6 +19,8 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * 邮件接收器
@@ -31,7 +34,12 @@ public class MailReceiver implements MailReceivable {
 
     private static final String DOWNLOADED_MAIL_FOLDER = "DOWNLOADED";
     private static final String ATTACHMENT_SAVE_PATH = "D:/tencent_exmail_attachments/";
-    private final ResumeFileApi resumeFileApi;
+    private final Vertx vertx;
+
+    // Event Bus地址，用于发送简历文件请求
+    private static final String RESUME_FILE_EVENT_ADDRESS = "resume.file.entity";
+
+    private final DomainEventBus domainEventBus;
 
     public void receive(MimeMessage receivedMessage) {
         try {
@@ -173,16 +181,21 @@ public class MailReceiver implements MailReceivable {
     private void extractMail(Message message) {
         try {
             final MimeMessage messageToExtract = (MimeMessage) message;
-            // todo 构建请求
-            PostResumeFileEntityRequest request = new PostResumeFileEntityRequest();
+            // 构建请求
+            //PostResumeFileEntityRequest request = new PostResumeFileEntityRequest();
+            Map<String, Object> data = new HashMap<>();
             // 解析邮件基本信息
+            data.put("subject", message.getSubject());
+            data.put("from", message.getFrom()[0]);
+            data.put("to", message.getAllRecipients());
             parseMailBasicInfo(message);
             parseMailContent(message);
             showMailContent(messageToExtract);
 
             downloadAttachmentFiles(messageToExtract);
-            // todo 保存请求
-            resumeFileApi.postEntity(request);
+
+            DomainEvent domainEvent = DomainEvent.address("setting.mail.read").data(data);
+            domainEventBus.publish(domainEvent);
 
             // To delete downloaded email
             //messageToExtract.setFlag(Flags.Flag.DELETED, true);
@@ -209,8 +222,7 @@ public class MailReceiver implements MailReceivable {
             for (int i = 0; i < multipart.getCount(); i++) {
                 BodyPart bodyPart = multipart.getBodyPart(i);
                 if (!Part.ATTACHMENT.equalsIgnoreCase(bodyPart.getDisposition()) &&
-                        bodyPart.getFileName() == null &&
-                        "text/plain".equals(bodyPart.getContentType())) {
+                        bodyPart.getFileName() == null && "text/plain".equals(bodyPart.getContentType())) {
                     return (String) bodyPart.getContent();
                 }
             }
