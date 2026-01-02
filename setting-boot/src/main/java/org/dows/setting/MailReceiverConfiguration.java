@@ -43,11 +43,6 @@ public class MailReceiverConfiguration implements ApplicationRunner {
     private final Map<String, DirectChannel> channels = new HashMap<>();
     private final Map<String, MailReceiver> receivers = new HashMap<>();
 
-    /**
-     * 创建并配置Vertx实例
-     *
-     * @return Vertx实例
-     */
 
     /**
      * 处理接收到的邮件消息

@@ -74,11 +74,11 @@ public class MailReceiver implements MailReceivable {
      */
     private static void parseMailBasicInfo(Message message) throws Exception {
         System.out.println("1. 邮件基础信息");
-        System.out.println("   邮件主题：" + message.getSubject());
+        System.out.println("   邮件主题：" + MailHeaderDecoder.decodeSubject(message.getSubject()));
         System.out.println("   发送时间：" + message.getSentDate());
         System.out.println("   邮件是否已读：" + message.isSet(Flags.Flag.SEEN));
-        System.out.println("   发件人：" + message.getFrom()[0]);
-        System.out.println("   收件人：" + message.getRecipients(Message.RecipientType.TO)[0]);
+        System.out.println("   发件人：" + MailHeaderDecoder.decodeFromAddress(message.getFrom()));
+        System.out.println("   收件人：" + MailHeaderDecoder.decodeToAddress(message.getRecipients(Message.RecipientType.TO)));
     }
 
     /**
@@ -185,9 +185,10 @@ public class MailReceiver implements MailReceivable {
             //PostResumeFileEntityRequest request = new PostResumeFileEntityRequest();
             Map<String, Object> data = new HashMap<>();
             // 解析邮件基本信息
-            data.put("subject", message.getSubject());
-            data.put("from", message.getFrom()[0]);
-            data.put("to", message.getAllRecipients());
+            // 解析邮件基本信息并解码中文
+            data.put("subject", MailHeaderDecoder.decodeSubject(message.getSubject()));
+            data.put("from", MailHeaderDecoder.decodeFromAddress(message.getFrom()));
+            data.put("to", MailHeaderDecoder.decodeAddresses(message.getAllRecipients()));
             parseMailBasicInfo(message);
             parseMailContent(message);
             showMailContent(messageToExtract);

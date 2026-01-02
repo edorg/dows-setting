@@ -18,6 +18,8 @@
         <spring-boot.version>3.5.7</spring-boot.version>
         <fastjson2.version>2.0.58</fastjson2.version>
 
+        <version.netty>4.2.9.Final</version.netty>
+
         <rade.version>1.0.251113-SNAPSHOT</rade.version>
         <disruptor.version>4.0.0</disruptor.version>
         <h2.version>2.2.224</h2.version>
@@ -125,7 +127,27 @@
             <dependency>
                 <groupId>io.vertx</groupId>
                 <artifactId>vertx-core</artifactId>
-                <version>5.0.6</version>
+                <version>5.0.4</version>
+               <!-- <exclusions>
+                    <exclusion>
+                        <groupId>io.netty</groupId>
+                        <artifactId>netty-all</artifactId>
+                    </exclusion>
+                </exclusions>-->
+            </dependency>
+
+            <!--<dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-all</artifactId>
+                <version>${version.netty}</version>
+            </dependency>-->
+
+            <dependency>
+                <groupId>io.vertx</groupId>
+                <artifactId>vertx-stack-depchain</artifactId>
+                <version>5.0.4</version>
+                <type>pom</type>
+                <scope>import</scope>
             </dependency>
 
         </dependencies>
@@ -145,6 +167,10 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <!--<dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-all</artifactId>
+        </dependency>-->
     </dependencies>
 
     <build>

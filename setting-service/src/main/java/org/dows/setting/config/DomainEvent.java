@@ -1,20 +1,26 @@
 package org.dows.setting.config;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 
+import java.io.Serializable;
 import java.time.Instant;
 import java.util.UUID;
 
-public class DomainEvent {
+public class DomainEvent implements Serializable {
 
     public DomainEvent() {
     }
-
+    @JsonProperty
     private final String eventId = UUID.randomUUID().toString();
+    @JsonProperty
     private final Instant occurredAt = Instant.now();
+    @JsonProperty
     private final String traceId = TraceContext.getOrCreate();
+    @JsonProperty("address")
     private String address;
-
+    @JsonProperty("data")
     private Object data;
 
     public String address() {
@@ -30,6 +36,14 @@ public class DomainEvent {
     public DomainEvent data(Object data) {
         this.data = data;
         return this;
+    }
+
+    public String toJson() {
+        return Json.encode(this);
+    }
+
+    public static DomainEvent fromJson(String json) {
+        return Json.decodeValue(json, DomainEvent.class);
     }
 
 
