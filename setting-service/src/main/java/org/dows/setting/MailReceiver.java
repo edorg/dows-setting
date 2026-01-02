@@ -1,6 +1,6 @@
 package org.dows.setting;
 
-import io.vertx.core.Vertx;
+import cn.hutool.crypto.digest.MD5;
 import jakarta.mail.*;
 import jakarta.mail.internet.MimeBodyPart;
 import jakarta.mail.internet.MimeMessage;
@@ -8,19 +8,23 @@ import jakarta.mail.internet.MimeMultipart;
 import jakarta.mail.internet.MimeUtility;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.dows.setting.config.DomainEvent;
-import org.dows.setting.config.DomainEventBus;
+import org.dows.rade.event.DomainEvent;
+import org.dows.rade.event.DomainEventBus;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Date;
+import java.util.List;
 
 /**
  * 邮件接收器
@@ -30,16 +34,12 @@ import java.util.Map;
 @Service
 public class MailReceiver implements MailReceivable {
 
-    private static final String DOWNLOAD_FOLDER = "data";
-
-    private static final String DOWNLOADED_MAIL_FOLDER = "DOWNLOADED";
-    private static final String ATTACHMENT_SAVE_PATH = "D:/tencent_exmail_attachments/";
-    private final Vertx vertx;
-
-    // Event Bus地址，用于发送简历文件请求
-    private static final String RESUME_FILE_EVENT_ADDRESS = "resume.file.entity";
-
+    @Value("${setting.mail.folders.download:DOWNLOAD}")
+    private String DOWNLOADED_MAIL_FOLDER;
+    @Value("${setting.download.folder:data}")
+    private String ATTACHMENT_SAVE_FOLDER;
     private final DomainEventBus domainEventBus;
+    private final MD5 md5 = MD5.create();
 
     public void receive(MimeMessage receivedMessage) {
         try {
@@ -59,7 +59,7 @@ public class MailReceiver implements MailReceivable {
                     return false;
                 }
             }).forEach(this::extractMail);
-
+            // copy mail to downloaded folder
             copyMailToDownloadedFolder(receivedMessage, folder);
 
             folder.close(true);
@@ -70,50 +70,12 @@ public class MailReceiver implements MailReceivable {
 
 
     /**
-     * 解析邮件基础信息（发件人、收件人、主题、发送时间等）
-     */
-    private static void parseMailBasicInfo(Message message) throws Exception {
-        System.out.println("1. 邮件基础信息");
-        System.out.println("   邮件主题：" + MailHeaderDecoder.decodeSubject(message.getSubject()));
-        System.out.println("   发送时间：" + message.getSentDate());
-        System.out.println("   邮件是否已读：" + message.isSet(Flags.Flag.SEEN));
-        System.out.println("   发件人：" + MailHeaderDecoder.decodeFromAddress(message.getFrom()));
-        System.out.println("   收件人：" + MailHeaderDecoder.decodeToAddress(message.getRecipients(Message.RecipientType.TO)));
-    }
-
-    /**
-     * 解析邮件正文内容（支持纯文本和HTML格式）
-     */
-    private static void parseMailContent(Message message) throws Exception {
-        System.out.println("2. 邮件正文内容");
-        // 邮件内容可能是简单文本或多部分内容（正文+附件）
-        Object content = message.getContent();
-        if (content instanceof MimeMultipart) {
-            // 多部分内容（处理正文，忽略附件）
-            MimeMultipart multipart = (MimeMultipart) content;
-            int partCount = multipart.getCount();
-            for (int i = 0; i < partCount; i++) {
-                MimeBodyPart bodyPart = (MimeBodyPart) multipart.getBodyPart(i);
-                // 判断是否为附件（附件通常有文件名）
-                if (bodyPart.isMimeType("text/plain") && !Part.ATTACHMENT.equalsIgnoreCase(bodyPart.getDisposition())) {
-                    System.out.println("   纯文本正文：" + bodyPart.getContent());
-                } else if (bodyPart.isMimeType("text/html") && !Part.ATTACHMENT.equalsIgnoreCase(bodyPart.getDisposition())) {
-                    System.out.println("   HTML格式正文：" + bodyPart.getContent());
-                }
-            }
-        } else {
-            // 简单文本内容
-            System.out.println("   纯文本正文：" + content);
-        }
-    }
-
-    /**
      * 解析并下载邮件附件到本地指定目录
      */
-    private static void downloadMailAttachments(Message message) throws Exception {
+    private void downloadMailAttachments(Message message) throws Exception {
         System.out.println("3. 邮件附件处理");
         // 先创建附件保存目录（若不存在）
-        File attachmentDir = new File(ATTACHMENT_SAVE_PATH);
+        File attachmentDir = new File(ATTACHMENT_SAVE_FOLDER);
         if (!attachmentDir.exists()) {
             attachmentDir.mkdirs();
         }
@@ -135,7 +97,7 @@ public class MailReceiver implements MailReceivable {
                     String fileName = bodyPart.getFileName();
                     // 解决中文文件名乱码问题
                     fileName = new String(fileName.getBytes("ISO-8859-1"), "UTF-8");
-                    String attachmentPath = ATTACHMENT_SAVE_PATH + File.separator + fileName;
+                    String attachmentPath = ATTACHMENT_SAVE_FOLDER + File.separator + fileName;
 
                     // 下载附件到本地
                     try (InputStream in = bodyPart.getInputStream();
@@ -181,28 +143,103 @@ public class MailReceiver implements MailReceivable {
     private void extractMail(Message message) {
         try {
             final MimeMessage messageToExtract = (MimeMessage) message;
-            // 构建请求
-            //PostResumeFileEntityRequest request = new PostResumeFileEntityRequest();
-            Map<String, Object> data = new HashMap<>();
-            // 解析邮件基本信息
-            // 解析邮件基本信息并解码中文
-            data.put("subject", MailHeaderDecoder.decodeSubject(message.getSubject()));
-            data.put("from", MailHeaderDecoder.decodeFromAddress(message.getFrom()));
-            data.put("to", MailHeaderDecoder.decodeAddresses(message.getAllRecipients()));
-            parseMailBasicInfo(message);
-            parseMailContent(message);
-            showMailContent(messageToExtract);
+            //秦柏杨 | 10年以上，应聘 技术合伙人 | 上海100-120元/时【BOSS直聘】
+            String subject = MailHeaderDecoder.decodeSubject(message.getSubject());
+            // 发件人
+            String from = MailHeaderDecoder.decodeFromAddress(message.getFrom());
+            printMailBasicInfo(message);
+            //parseMailContent(message);
+            //showMailContent(messageToExtract);
 
-            downloadAttachmentFiles(messageToExtract);
+            String source = null;
+            if (from.contains("boss")) {
+                source = "boss";
+            }
+            String positionName = extractBossPositionName(subject);
+            List<File> files = downloadAttachmentFiles(messageToExtract);
+            Date receivedDate = messageToExtract.getReceivedDate();
+            long batchNo = System.currentTimeMillis();
+            for (File file : files) {
+                AttachmentSchema attachmentSchema = new AttachmentSchema();
+                attachmentSchema.setFileName(file.getName());
+                attachmentSchema.setFileExt(FilenameUtils.getExtension(file.getName()));
+                attachmentSchema.setFilePath(file.getAbsolutePath());
+                attachmentSchema.setFileSize(file.length());
+                attachmentSchema.setMd5(md5.digestHex(file));
+                attachmentSchema.setBatchNo(batchNo);
+                attachmentSchema.setPositionName(positionName);
+                attachmentSchema.setReceiveTime(LocalDateTime.from(receivedDate.toInstant()));
+                // 需要手动指定岗位编号
+                //attachmentSchema.setPositionNo();
+                attachmentSchema.setSource(source);
 
-            DomainEvent domainEvent = DomainEvent.address("setting.mail.read").data(data);
-            domainEventBus.publish(domainEvent);
-
+                DomainEvent domainEvent = DomainEvent.address("setting.mail.read").data(attachmentSchema);
+                domainEventBus.publish(domainEvent);
+            }
             // To delete downloaded email
             //messageToExtract.setFlag(Flags.Flag.DELETED, true);
-
         } catch (Exception e) {
             log.error(e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 从邮件主题中提取职位信息
+     *
+     * @param subject 邮件主题，如 "秦柏杨 | 10年以上，应聘 技术合伙人 | 上海100-120元/时【BOSS直聘】"
+     * @return 职位名称，如 "技术合伙人"
+     */
+    private String extractBossPositionName(String subject) {
+        if (StringUtils.isBlank(subject)) {
+            return "";
+        }
+
+        // 使用正则表达式匹配 "应聘 [职位名] |" 模式
+        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("应聘\\s*([^|]+)\\s*\\|");
+        java.util.regex.Matcher matcher = pattern.matcher(subject);
+
+        if (matcher.find()) {
+            // 返回匹配到的职位名并去除首尾空格
+            return matcher.group(1).trim();
+        }
+        return "";
+    }
+
+    /**
+     * 解析邮件基础信息（发件人、收件人、主题、发送时间等）
+     */
+    private static void printMailBasicInfo(Message message) throws Exception {
+        System.out.println("1. 邮件基础信息");
+        System.out.println("   邮件主题：" + MailHeaderDecoder.decodeSubject(message.getSubject()));
+        System.out.println("   发送时间：" + message.getSentDate());
+        System.out.println("   邮件是否已读：" + message.isSet(Flags.Flag.SEEN));
+        System.out.println("   发件人：" + MailHeaderDecoder.decodeFromAddress(message.getFrom()));
+        System.out.println("   收件人：" + MailHeaderDecoder.decodeToAddress(message.getRecipients(Message.RecipientType.TO)));
+    }
+
+    /**
+     * 解析邮件正文内容（支持纯文本和HTML格式）
+     */
+    private static void parseMailContent(Message message) throws Exception {
+        System.out.println("2. 邮件正文内容");
+        // 邮件内容可能是简单文本或多部分内容（正文+附件）
+        Object content = message.getContent();
+        if (content instanceof MimeMultipart) {
+            // 多部分内容（处理正文，忽略附件）
+            MimeMultipart multipart = (MimeMultipart) content;
+            int partCount = multipart.getCount();
+            for (int i = 0; i < partCount; i++) {
+                MimeBodyPart bodyPart = (MimeBodyPart) multipart.getBodyPart(i);
+                // 判断是否为附件（附件通常有文件名）
+                if (bodyPart.isMimeType("text/plain") && !Part.ATTACHMENT.equalsIgnoreCase(bodyPart.getDisposition())) {
+                    System.out.println("   纯文本正文：" + bodyPart.getContent());
+                } else if (bodyPart.isMimeType("text/html") && !Part.ATTACHMENT.equalsIgnoreCase(bodyPart.getDisposition())) {
+                    System.out.println("   HTML格式正文：" + bodyPart.getContent());
+                }
+            }
+        } else {
+            // 简单文本内容
+            System.out.println("   纯文本正文：" + content);
         }
     }
 
@@ -231,8 +268,9 @@ public class MailReceiver implements MailReceivable {
         return "";
     }
 
-    private void downloadAttachmentFiles(MimeMessage mimeMessage) throws Exception {
+    private List<File> downloadAttachmentFiles(MimeMessage mimeMessage) throws Exception {
         Object content = mimeMessage.getContent();
+        List<File> downloadedFiles = new ArrayList<>();
         if (content instanceof Multipart multipart) {
             int attachmentCount = 0;
             for (int i = 0; i < multipart.getCount(); i++) {
@@ -248,10 +286,11 @@ public class MailReceiver implements MailReceivable {
                         fileName = sanitizeFileName(fileName);
 
                         String rootDirectoryPath = new FileSystemResource("").getFile().getAbsolutePath();
-                        String dataFolderPath = rootDirectoryPath + File.separator + DOWNLOAD_FOLDER;
+                        String dataFolderPath = rootDirectoryPath + File.separator + ATTACHMENT_SAVE_FOLDER;
                         createDirectoryIfNotExists(dataFolderPath);
 
-                        String downloadedAttachmentFilePath = rootDirectoryPath + File.separator + DOWNLOAD_FOLDER + File.separator + fileName;
+                        String downloadedAttachmentFilePath = rootDirectoryPath +
+                                File.separator + ATTACHMENT_SAVE_FOLDER + File.separator + fileName;
 
                         // 确保目标文件的父目录存在
                         File downloadedAttachmentFile = new File(downloadedAttachmentFilePath);
@@ -268,6 +307,7 @@ public class MailReceiver implements MailReceivable {
                         } catch (IOException e) {
                             log.error("Failed to save file: {}", downloadedAttachmentFilePath, e);
                         }
+                        downloadedFiles.add(downloadedAttachmentFile);
                     }
                 }
             }
@@ -275,6 +315,7 @@ public class MailReceiver implements MailReceivable {
         } else {
             log.debug("Email has 0 attachment files");
         }
+        return downloadedFiles;
     }
 
     private void createDirectoryIfNotExists(String directoryPath) {

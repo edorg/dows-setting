@@ -1,7 +1,7 @@
 package org.dows.setting;
 
 import io.vertx.core.AbstractVerticle;
-import org.dows.setting.config.TraceContext;
+import org.dows.rade.event.TraceContext;
 
 public class RfaVerticle extends AbstractVerticle {
 
