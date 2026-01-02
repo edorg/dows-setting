@@ -42,27 +42,27 @@ public class MailReceiverConfiguration implements ApplicationRunner {
     private final Map<String, MailReceiver> receivers = new HashMap<>();
 
 
-//    /**
-//     * 处理接收到的邮件消息
-//     *
-//     * @param message 邮件消息
-//     */
-//    @ServiceActivator(inputChannel = "mailHandlerChannel")
-//    public void handleReceivedMail(Message<?> message) {
-//        mailReceivable.receive((MimeMessage) message.getPayload());
-//    }
-//
-//    /**
-//     * 创建通用的邮件处理通道
-//     *
-//     * @return DirectChannel
-//     */
-//    @Bean("mailHandlerChannel")
-//    public DirectChannel mailHandlerChannel() {
-//        DirectChannel directChannel = new DirectChannel();
-//        directChannel.setDatatypes(MimeMessage.class);
-//        return directChannel;
-//    }
+    /**
+     * 处理接收到的邮件消息
+     *
+     * @param message 邮件消息
+     */
+    @ServiceActivator(inputChannel = "mailHandlerChannel")
+    public void handleReceivedMail(Message<?> message) {
+        mailReceivable.receive((MimeMessage) message.getPayload());
+    }
+
+    /**
+     * 创建通用的邮件处理通道
+     *
+     * @return DirectChannel
+     */
+    @Bean("mailHandlerChannel")
+    public DirectChannel mailHandlerChannel() {
+        DirectChannel directChannel = new DirectChannel();
+        directChannel.setDatatypes(MimeMessage.class);
+        return directChannel;
+    }
 
     /**
      * 应用启动后初始化所有邮件服务器配置

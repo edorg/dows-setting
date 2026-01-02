@@ -15,10 +15,6 @@ spring:
       max-file-size: 100MB
       max-request-size: 100MB
 
-  logging:
-    level:
-      root: info
-
   datasource:
     url: jdbc:h2:mem:maildb
     driverClassName: org.h2.Driver
@@ -33,17 +29,10 @@ spring:
     console:
       enabled: true
       path: /h2-console
-# Log level
+
 logging:
   level:
-    root: INFO
-    com.huytmb: DEBUG
-    org.springframework.integration: DEBUG
-    org.springframework.orm.jpa: DEBUG
-    org.hibernate.SQL: DEBUG
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %logger{36} - %msg%n"
-
+    root: info
 
 setting:
   mail:
