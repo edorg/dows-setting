@@ -1,4 +1,4 @@
-package org.dows.setting;
+package org.dows.setting.util;
 
 import jakarta.mail.Address;
 import jakarta.mail.internet.MimeUtility;

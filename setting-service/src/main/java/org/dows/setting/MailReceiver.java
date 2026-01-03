@@ -11,12 +11,17 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.pdmodel.PDDocument;
 import org.dows.rade.event.DomainEvent;
 import org.dows.rade.event.DomainEventBus;
+import org.dows.setting.util.MailHeaderDecoder;
+import org.dows.setting.util.SkewKeywordTxtExtractor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -33,10 +38,13 @@ import java.util.List;
 @Service
 public class MailReceiver implements MailReceivable {
 
+
     @Value("${setting.mail.folders.download:DOWNLOAD}")
     private String DOWNLOADED_MAIL_FOLDER;
     @Value("${setting.download.folder:data}")
     private String ATTACHMENT_SAVE_FOLDER;
+    @Value("${setting.extracter.keyworks}")
+    private List<String> keywords = Arrays.asList("仅供招聘专用，企业应尽保密义务，禁止外传", "一经发现我司有权采取一切必要措施，包括但不限于暂停或终止服务。");
     private final DomainEventBus domainEventBus;
     private final MD5 md5 = MD5.create();
 
@@ -155,6 +163,7 @@ public class MailReceiver implements MailReceivable {
                 source = "boss";
             }
             String positionName = extractBossPositionName(subject);
+            String positionNo = positionName.replaceAll("\\|", "");
             List<File> files = downloadAttachmentFiles(messageToExtract);
             LocalDateTime receivedDate = LocalDateTime
                     .ofInstant(messageToExtract.getReceivedDate().toInstant(), java.time.ZoneId.systemDefault());
@@ -170,9 +179,10 @@ public class MailReceiver implements MailReceivable {
                 attachmentSchema.setPositionName(positionName);
                 attachmentSchema.setReceiveTime(receivedDate);
                 // 需要手动指定岗位编号
-                //attachmentSchema.setPositionNo();
+                attachmentSchema.setPositionNo(positionNo);
                 attachmentSchema.setSource(source);
-
+                // 转换txt
+                transform(file);
                 DomainEvent domainEvent = DomainEvent.address("setting.mail.readed").data(attachmentSchema);
                 domainEventBus.publish(domainEvent);
             }
@@ -180,6 +190,20 @@ public class MailReceiver implements MailReceivable {
             //messageToExtract.setFlag(Flags.Flag.DELETED, true);
         } catch (Exception e) {
             log.error(e.getMessage(), e);
+        }
+    }
+
+
+    public void transform(File file) {
+        try {
+            PDDocument doc = Loader.loadPDF(file);
+            SkewKeywordTxtExtractor stripper = new SkewKeywordTxtExtractor(keywords);
+            Path path = Paths.get(ATTACHMENT_SAVE_FOLDER, file.getName() + ".txt");
+            OutputStreamWriter w = new OutputStreamWriter(new FileOutputStream(path.toFile()), StandardCharsets.UTF_8);
+            stripper.writeText(doc, w);
+            doc.close();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 
