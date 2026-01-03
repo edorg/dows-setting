@@ -158,16 +158,15 @@ public class MailReceiverConfiguration implements ApplicationRunner {
         // 使用Spring的TaskScheduler启动定时任务
         taskScheduler.scheduleAtFixedRate(() -> {
             try {
-                log.info("执行邮件轮询任务，配置ID：{}", config.getKey());
-
+                //log.info("执行邮件轮询任务，配置ID：{}", config.getKey());
                 // 获取新邮件并发送到通道
                 Message<?> message = messageSource.receive();
                 if (message != null) {
                     log.info("接收到新邮件，配置ID：{}", config.getKey());
                     channels.get(config.getKey()).send(message);
-                } else {
+                } /*else {
                     log.debug("未接收到新邮件，配置ID：{}", config.getKey());
-                }
+                }*/
             } catch (Exception e) {
                 log.error("邮件轮询任务执行失败，配置ID：{}", config.getKey(), e);
             }
