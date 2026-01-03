@@ -34,6 +34,9 @@ logging:
   level:
     root: info
 
+vaadin:
+  launch-browser: true
+
 setting:
   mail:
     folders:
@@ -41,3 +44,7 @@ setting:
       download: "DOWNLOAD"
   download:
     folder: E:/download/mail
+  extractor:
+    keywords:
+      - 仅供招聘专用，企业应尽保密义务，禁止外传
+      - 一经发现我司有权采取一切必要措施，包括但不限于暂停或终止服务。

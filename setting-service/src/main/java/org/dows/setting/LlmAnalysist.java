@@ -12,5 +12,6 @@ public class LlmAnalysist implements Analysisable {
 
     public void analysis(String text) {
         log.info("LlmAnalysist:{}", text);
+
     }
 }

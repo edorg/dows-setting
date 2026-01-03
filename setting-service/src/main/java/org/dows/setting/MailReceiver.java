@@ -43,8 +43,8 @@ public class MailReceiver implements MailReceivable {
     private String DOWNLOADED_MAIL_FOLDER;
     @Value("${setting.download.folder:data}")
     private String ATTACHMENT_SAVE_FOLDER;
-    @Value("${setting.extracter.keyworks}")
-    private List<String> keywords = Arrays.asList("仅供招聘专用，企业应尽保密义务，禁止外传", "一经发现我司有权采取一切必要措施，包括但不限于暂停或终止服务。");
+    @Value("${setting.extractor.keywords:''}")
+    private List<String> keywords;
     private final DomainEventBus domainEventBus;
     private final MD5 md5 = MD5.create();
 
