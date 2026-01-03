@@ -14,16 +14,15 @@ import org.apache.commons.lang3.StringUtils;
 import org.dows.rade.event.DomainEvent;
 import org.dows.rade.event.DomainEventBus;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.FileSystemResource;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.List;
 
 /**
@@ -157,7 +156,8 @@ public class MailReceiver implements MailReceivable {
             }
             String positionName = extractBossPositionName(subject);
             List<File> files = downloadAttachmentFiles(messageToExtract);
-            Date receivedDate = messageToExtract.getReceivedDate();
+            LocalDateTime receivedDate = LocalDateTime
+                    .ofInstant(messageToExtract.getReceivedDate().toInstant(), java.time.ZoneId.systemDefault());
             long batchNo = System.currentTimeMillis();
             for (File file : files) {
                 AttachmentSchema attachmentSchema = new AttachmentSchema();
@@ -168,12 +168,12 @@ public class MailReceiver implements MailReceivable {
                 attachmentSchema.setMd5(md5.digestHex(file));
                 attachmentSchema.setBatchNo(batchNo);
                 attachmentSchema.setPositionName(positionName);
-                attachmentSchema.setReceiveTime(LocalDateTime.from(receivedDate.toInstant()));
+                attachmentSchema.setReceiveTime(receivedDate);
                 // 需要手动指定岗位编号
                 //attachmentSchema.setPositionNo();
                 attachmentSchema.setSource(source);
 
-                DomainEvent domainEvent = DomainEvent.address("setting.mail.read").data(attachmentSchema);
+                DomainEvent domainEvent = DomainEvent.address("setting.mail.readed").data(attachmentSchema);
                 domainEventBus.publish(domainEvent);
             }
             // To delete downloaded email
@@ -281,26 +281,15 @@ public class MailReceiver implements MailReceivable {
                     if (StringUtils.isNotBlank(fileName)) {
                         // 使用MimeUtility解码文件名，处理中文文件名
                         fileName = MimeUtility.decodeText(fileName);
-
                         // 清理文件名中的非法字符
                         fileName = sanitizeFileName(fileName);
 
-                        String rootDirectoryPath = new FileSystemResource("").getFile().getAbsolutePath();
-                        String dataFolderPath = rootDirectoryPath + File.separator + ATTACHMENT_SAVE_FOLDER;
-                        createDirectoryIfNotExists(dataFolderPath);
-
-                        String downloadedAttachmentFilePath = rootDirectoryPath +
-                                File.separator + ATTACHMENT_SAVE_FOLDER + File.separator + fileName;
-
-                        // 确保目标文件的父目录存在
-                        File downloadedAttachmentFile = new File(downloadedAttachmentFilePath);
-                        File parentDir = downloadedAttachmentFile.getParentFile();
-                        if (parentDir != null && !parentDir.exists()) {
-                            parentDir.mkdirs();
-                        }
-
+                        createDirectoryIfNotExists(ATTACHMENT_SAVE_FOLDER);
+                        Path path = Paths.get(ATTACHMENT_SAVE_FOLDER, fileName);
+                        String downloadedAttachmentFilePath = path.toString();
                         log.info("Save attachment file to: {}", downloadedAttachmentFilePath);
 
+                        File downloadedAttachmentFile = path.toFile();
                         try (InputStream in = bodyPart.getInputStream();
                              OutputStream out = new FileOutputStream(downloadedAttachmentFile)) {
                             IOUtils.copy(in, out);
@@ -319,9 +308,10 @@ public class MailReceiver implements MailReceivable {
     }
 
     private void createDirectoryIfNotExists(String directoryPath) {
-        if (!Files.exists(Paths.get(directoryPath))) {
+        Path path = Paths.get(directoryPath);
+        if (!Files.exists(path)) {
             try {
-                Files.createDirectories(Paths.get(directoryPath));
+                Files.createDirectories(path);
             } catch (IOException e) {
                 log.error("An error occurred during create folder: {}", directoryPath, e);
             }
